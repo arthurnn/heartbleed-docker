@@ -11,3 +11,4 @@ docker build -t arthurnn/heartbleed .
 // change the target url to a vulnerable website
 docker run -d -p 9099:9099 arthurnn/heartbleed mail.yahoo.com
 ```
+Check http://localhost:9099
