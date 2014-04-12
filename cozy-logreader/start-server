@@ -1,0 +1,4 @@
+#! /usr/bin/env bash
+
+/usr/local/bin/hb_cookie $1 &
+coffee server.coffee

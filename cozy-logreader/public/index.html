@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Monitoring</title>
+    <meta charset="utf-8" />
+
+    <link href="./css/bootstrap.css" rel="stylesheet">
+    <link href="./css/main.css" rel="stylesheet">
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script src="./js/bootstrap.min.js"></script>
+
+    <script>
+
+        function nl2br (str, is_xhtml) {
+            var breakTag = (is_xhtml || typeof is_xhtml === 'undefined') ? '<br />' : '<br>';
+            return (str + '').replace(/([^>\r\n]?)(\r\n|\n\r|\r|\n)/g, '$1' + breakTag + '$2');
+        }
+
+        function checkGoBottomButton() {
+            var currentPosition = $(document).scrollTop();
+            var bottomPosition = $(document).height() - $(window).height();
+
+            if(currentPosition < bottomPosition) {
+
+                /* this a trick to handle bad float management from javascript */
+                if(Math.floor($('#to-bottom').css('opacity')*10) == 1) {
+                    $('#to-bottom').fadeTo(400, 1);
+                }
+            }
+            else if (currentPosition == bottomPosition) {
+
+                if($('#to-bottom').css('opacity') == 1) {
+                    $('#to-bottom').fadeTo(400, 0.1);
+                }
+            }
+        }
+
+        function isScrolledIntoView(elem) {
+            var docViewTop = $(window).scrollTop();
+            var docViewBottom = docViewTop + $(window).height();
+
+            var elemTop = $(elem).offset().top;
+            var elemBottom = elemTop + $(elem).height();
+
+            return ((elemBottom >= docViewTop) && (elemTop <= docViewBottom)
+              && (elemBottom <= docViewBottom) &&  (elemTop >= docViewTop) );
+        }
+
+        function checkIfElementIsViewed() {
+            $('.tab-pane.active li.new').each(function() {
+                if(isScrolledIntoView($(this))) {
+                    $(this).fadeTo(2000, 1, function() {
+                        $(this).removeClass('new');
+                    });
+                }
+            });
+
+            $('.separator').each(function() {
+                if($(this).css('opacity') == 1 && isScrolledIntoView($(this))) {
+                    $(this).fadeTo(5000, 0.2);
+                }
+            });
+        }
+
+        $(document).ready(function() {
+
+            checkGoBottomButton();
+
+            var socket = io.connect(document.location.origin);
+            var container = $('#container .tab-content');
+            var monitors = [];
+
+            $(document).scroll(function(event) {
+
+                var slug = $('.tab-content .active').attr('id');
+                var currentPosition = $(document).scrollTop();
+                monitors[slug].scrollPos = currentPosition;
+
+                checkGoBottomButton();
+                checkIfElementIsViewed();
+            });
+
+
+            $('#go-to-bottom').click(function(event) {
+                checkGoBottomButton();
+            });
+
+
+            socket.on('new-data', function(data) {
+
+                if ($('#' + data.fileSlug).length == 0) {
+
+                    var newMonitor = $('<div class="tab-pane" id="' + data.fileSlug + '"></div>');
+                    newMonitor.append($('<ul></ul>'));
+                    var newMonitorTitle = $('<li id="title-' + data.fileSlug + '"></li>');
+
+                    var newMonitorTitleLink = $('<a data-toggle="tab"></a>');
+                    newMonitorTitleLink.attr('href', '#' + data.fileSlug);
+                    newMonitorTitleLink.html(data.fileName + ' ');
+                    newMonitorTitleLink.append($('<span class="badge badge-important"></span>'));
+                    newMonitorTitleLink.appendTo(newMonitorTitle);
+
+                    newMonitorTitleLink.on('shown', function(event) {
+                        var id = $(event.target).attr('href');
+                        var slug = id.substr(1, id.length);
+                        $(document).scrollTop(monitors[slug].scrollPos);
+                        checkGoBottomButton();
+                        checkIfElementIsViewed();
+                    });
+
+                    newMonitor.appendTo(container);
+                    newMonitorTitle.appendTo($('#menu ul'));
+
+                    monitors[data.fileSlug] = {
+                        'scrollPos': 0
+                    };
+
+                    newMonitorTitle.click(function() {
+                        counter = $('#title-' + data.fileSlug + ' span').html('');
+                        checkGoBottomButton();
+                    });
+                }
+
+                var newItem = $('<li>' + nl2br(data.value) + '</li>');
+                var maxScrollPosition = $(document).height() - $(window).height();
+                var mustAutoScroll = maxScrollPosition == monitors[data.fileSlug].scrollPos;
+
+
+                if(!$('#' + data.fileSlug).hasClass('active') && $('#' + data.fileSlug + ' li.new').length == 0 && $('#' + data.fileSlug + ' li').length > 0) {
+                    $('#' + data.fileSlug + ' ul').append($('<li class="separator">#############################################################################</li>'));
+                }
+
+                if(!$('#' + data.fileSlug).hasClass('active') || !isScrolledIntoView(newItem)) {
+                   if($('#' + data.fileSlug + ' li').length == 0) {
+                        newItem.addClass('old');
+                    }
+                    else {
+                        newItem.addClass('new');
+                    }
+                }
+
+                $('#' + data.fileSlug + ' ul').append(newItem);
+
+
+                if(!$('#' + data.fileSlug).hasClass('active') && $('#' + data.fileSlug + ' li').length > 1) {
+
+                    var counter = $('#title-' + data.fileSlug + ' span');
+                    if(counter.html() == '') {
+                        counter.html('0');
+                    }
+                    counter.html(parseInt(counter.html()) + 1);
+                }
+                else {
+
+                    if(mustAutoScroll) {
+                        $(document).scrollTop($(document).height());
+                        monitors[data.fileSlug].scrollPos = $(document).scrollTop();
+                    }
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+<div id="container">
+    <div id="menu" class="navbar navbar-inner navbar-fixed-top container-fluid">
+        <ul class="nav nav-tabs">
+            <li id="to-bottom">
+            <a href="#go-to-bottom">
+                Go to bottom <i class="icon-arrow-down"></i></a></li>
+        </ul>
+    </div>
+    <div class="tab-content">
+        <ul></div>
+    <div id="go-to-bottom"></div>
+</div>
+</body>
+</html>

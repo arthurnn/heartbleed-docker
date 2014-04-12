@@ -1,0 +1,17 @@
+{
+  "name": "cozy-logreader",
+  "version": "0.1.0",
+  "description": "Tool to watch logs directly in the browser",
+  "license": "LGPL v3",
+  "engines": {
+    "node": "0.8 || 0.9"
+  },
+  "dependencies": {
+    "coffee-script": "~1.3.3",
+    "socket.io": "=0.9",
+    "connect": ">= 2.8 < 3"
+  },
+  "devDependencies": {
+  },
+  "author": "Cozy Cloud"
+}

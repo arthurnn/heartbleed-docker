@@ -1,0 +1,23 @@
+.tab-content {
+    margin-top: 50px;
+}
+
+.new {
+    opacity: 0.3;
+}
+
+.old {
+    opacity: 0.5;
+}
+
+.separator {
+    font-weight: bold;
+}
+
+ul {
+    list-style-type: none;
+}
+
+li.old, li.new  {
+    word-wrap: break-word;
+}
